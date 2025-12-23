@@ -188,6 +188,12 @@ app.put('/api/users/update', async (req, res) => {
     }
 });
 
+
+
+
+
+
+
 app.post('/api/secretaire/inscrire-etudiant', async (req, res) => {
     const { login, mdp, nom, prenom, email, filiere } = req.body;
     try {
@@ -198,17 +204,28 @@ app.post('/api/secretaire/inscrire-etudiant', async (req, res) => {
         );
         const id_u = userRes.rows[0].id_utilisateur;
      
-        await pool.query(
-            'INSERT INTO etudiant (id_utilisateur, filiere, statut_recherche, attestation_responsabilite, validation_attestation, visibilite_infos) VALUES ($1, $2, false, false, "En attente", false)',
-            [id_u, filiere]
-        );
+       
+      await pool.query(
+    "INSERT INTO etudiant (id_utilisateur, filiere, statut_recherche, attestation_responsabilite, validation_attestation, visibilite_infos) VALUES ($1, $2, false, false, 'en attente', false)",
+    [id_u, filiere]
+);
+
+
         await pool.query('COMMIT');
         res.json({ message: 'Étudiant inscrit avec succès !' });
     } catch (err) {
         await pool.query('ROLLBACK');
+        console.error("Erreur lors de l'inscription :", err); // on va voir toutes les erreurs
         res.status(500).json({ message: err.message });
     }
 });
+
+
+
+
+
+
+
 
 app.get('/api/secretaire/attestations-pendantes', async (req, res) => {
     try {
