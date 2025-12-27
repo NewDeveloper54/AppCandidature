@@ -8,16 +8,22 @@ export default function MesCandidatures() {
     const id_etudiant = localStorage.getItem('userId');
 
     useEffect(() => {
-        const fetchCandidatures = async () => {
-            try {
-                
-                const res = await fetch(`http://localhost:5000/api/etudiants/${id_etudiant}/candidatures`);
-                const data = await res.json();
-                setCandidatures(data);
-            } catch (err) { console.error(err); }
-        };
-        fetchCandidatures();
-    }, [id_etudiant]);
+    const fetchCandidatures = async () => {
+        try {
+            const res = await fetch(`http://localhost:5000/api/etudiants/${id_etudiant}/candidatures`);
+            if (!res.ok) {
+                throw new Error(`Erreur serveur: ${res.status}`);
+            }
+            const data = await res.json();
+            setCandidatures(data);
+        } catch (err) {
+            console.error("Erreur lors du fetch des candidatures:", err);
+            setCandidatures([]); // évite l'affichage de l'écran blanc
+        }
+    };
+    fetchCandidatures();
+}, [id_etudiant]);
+
 
     const getStatusStyle = (status: string) => {
         switch (status) {

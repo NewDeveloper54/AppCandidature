@@ -227,32 +227,7 @@ app.post('/api/secretaire/inscrire-etudiant', async (req, res) => {
 
 
 
-app.get('/api/secretaire/attestations-pendantes', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT u.id_utilisateur, u.nom, u.prenom, et.filiere, et.validation_attestation
-            FROM utilisateur u
-            JOIN etudiant et ON u.id_utilisateur = et.id_utilisateur
-            WHERE et.attestation_responsabilite = true AND et.validation_attestation = 'En attente'
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
 
-app.put('/api/secretaire/valider-attestation', async (req, res) => {
-    const { id_utilisateur, decision } = req.body; 
-    try {
-        await pool.query(
-            'UPDATE etudiant SET validation_attestation = $1 WHERE id_utilisateur = $2',
-            [decision, id_utilisateur]
-        );
-        res.json({ message: `Attestation ${decision.toLowerCase()}e.` });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
 
 app.post('/api/register-entreprise', async (req, res) => {
     const { login, mdp, email, raison_sociale, siret, adresse, telephone } = req.body;
@@ -520,6 +495,14 @@ app.post('/api/etudiants/candidater', async (req, res) => {
     const { id_etudiant, id_offre, cv, lettre_motivation } = req.body;
 
     try {
+        const repetitionOffre = await pool.query(
+            "SELECT 1 FROM candidature WHERE id_etudiant = $1 AND id_offre = $2",
+            [id_etudiant, id_offre]
+        );
+       
+        if(repetitionOffre.rows.length > 0){
+            return res.status(400).json({message : "Vous avez déja postulé à cette offre"});
+        }
         const offreRes = await pool.query("SELECT id_enseignant FROM offre WHERE id_offre = $1", [id_offre]);
         const id_enseignant = offreRes.rows[0].id_enseignant;
 
@@ -532,15 +515,22 @@ app.post('/api/etudiants/candidater', async (req, res) => {
         );
 
         res.json({ message: "Candidature envoyée avec succès !" });
+
     } catch (err) {
+        console.error("Erreur de Candidature :", err.message);
         res.status(500).json({ message: "Erreur lors de la candidature : " + err.message });
     }
 });
 
+
+
+
 app.get('/api/etudiants/:id/candidatures', async (req, res) => {
     try {
+
+
         const result = await pool.query(`
-            SELECT c.*, o.titre as offre_titre, e.nom as entreprise_nom
+            SELECT c.*, o.titre as offre_titre
             FROM candidature c
             JOIN offre o ON c.id_offre = o.id_offre
             JOIN entreprise e ON o.id_entreprise = e.id_entreprise
@@ -548,6 +538,8 @@ app.get('/api/etudiants/:id/candidatures', async (req, res) => {
             ORDER BY c.date_candidature DESC
         `, [req.params.id]);
         res.json(result.rows);
+
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -636,7 +628,57 @@ app.get('/api/etudiants/:id/profil-complet', async (req, res) => {
     }
 });
 
+app.delete('/api/etudiants/:id/attestation', async(req, res) =>{
+try{
+    const {id} = req.params;
+    await pool.query(
+        'UPDATE etudiant SET attestation_fichier = NULL,attestation_responsabilite = FALSE WHERE id_utilisateur = $1',
+        [id]
+    );
+    res.status(200).json({message : "Attestaion supprimée avec succés"});
+
+
+}catch(error){
+console.log("Erreur lors de la suppression de l'attestation :", error.message);
+res.status(500).json({message : "Erreur lors de la suppression de l'attestation"});
+}
+});
+
+
+app.get('/api/etudiants/:id/attestation', async (req, res) => {
+
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT attestation_fichier, attestation_responsabilite
+       FROM etudiant
+       WHERE id_utilisateur = $1`,
+      [id]
+    );
+
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ message: "Étudiant non trouvé" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
 app.get('/api/secretaire/attestations-pendantes', async (req, res) => {
+            console.log("🔥 ROUTE ATTESTATIONS PENDANTES APPELÉE 🔥");
+
     try {
         const result = await pool.query(`
             SELECT 
@@ -649,12 +691,12 @@ app.get('/api/secretaire/attestations-pendantes', async (req, res) => {
             FROM utilisateur u
             JOIN etudiant et ON u.id_utilisateur = et.id_utilisateur
             WHERE et.attestation_responsabilite = true 
-            AND et.validation_attestation::TEXT = 'en attente' -- <--- ICI : Doit être en minuscules
+            AND et.validation_attestation::TEXT = 'en attente' 
             ORDER BY u.nom ASC
         `);
         res.json(result.rows);
     } catch (err) {
-        console.error("ERREUR SQL:", err.message);
+        console.error("Erreur lors du chargement :", err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -677,9 +719,31 @@ app.put('/api/secretaire/valider-attestation', async (req, res) => {
     }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get('/', (req, res) => {
     res.send('Serveur API du Portail des Stages en ligne !');
 });
+
+
+
+
 
 app.listen(PORT, () => {
     console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Offres() {
   return (
     <section id="offres" className="bg-white/10 rounded-xl p-10 backdrop-blur-md shadow-lg">
