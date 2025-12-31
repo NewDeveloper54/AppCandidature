@@ -225,12 +225,13 @@ export default function MesOffres() {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-3">
                                     <h3 className="text-lg font-bold text-white">{offre.titre}</h3>
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${offre.statut === 'validée' ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-red-500 text-red-500 bg-amber-500/10'}`}>{offre.statut}</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${offre.statut === 'validée' ? 'border-green-500 text-green-500 bg-green-500/10' : offre.statut==='en attente' ? 'border-amber-500 text-amber-500 bg-amber-500/10' : 'border-red-500 text-red-500 bg-red-500/10'}`}>{offre.statut}</span>
                                     {offre.statut === 'refusée' && offre.motif_refus && (
                                         <span className='text-[12px] px-0 py-0.5 rounded-full  font-bold uppercase text-red-400 '>
                                              {`Motif de refus : ${offre.motif_refus}`}
                                         </span>
                                     )}
+                                    
                                 </div>
                                 <div className="flex gap-4 text-xs text-white/40 uppercase font-semibold">
                                     <span className="text-blue-400">{offre.type}</span>

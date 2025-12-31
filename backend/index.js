@@ -701,7 +701,7 @@ app.get('/api/etudiants/:id/attestation', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT attestation_fichier, attestation_responsabilite
+      `SELECT attestation_fichier, attestation_responsabilite, validation_attestation
        FROM etudiant
        WHERE id_utilisateur = $1`,
       [id]
@@ -861,8 +861,99 @@ app.get('/api/entreprises/:id', async (req, res) => {
 
 
 
+app.get('/api/entreprises/:id/candidatures', async(req, res) =>{
+    const {id} = req.params;
+
+    try{
+        const result = await pool.query(`
+            SELECT e.raison_sociale,o.titre,c.id_candidature, c.id_etudiant, c.id_offre, c.statut_candidature, c.date_candidature, u.nom, u.prenom, u.email
+            FROM candidature c
+            JOIN etudiant et ON c.id_etudiant = et.id_utilisateur
+            JOIN offre o ON c.id_offre = o.id_offre
+            JOIN utilisateur u ON et.id_utilisateur = u.id_utilisateur
+			JOIN entreprise e ON o.id_entreprise = e.id_entreprise
+            WHERE e.id_utilisateur =$1 AND c.statut_candidature = 'en attente' 
+            ORDER BY c.date_candidature DESC;
+        `, [id]
+            );
+
+            res.json(result.rows);
+
+    }catch(error){
+        console.error("Erreur lors de du chargement des candidatures :", error.message);
+        res.status(500).json({message : "Erreur technique lors du chargement des candidatures"});
+
+    }
 
 
+});
+
+
+app.patch('/api/candidatures/:id/accepter', async (req, res)=>{
+    const {id} =req.params;
+    try{
+         await pool.query (`
+            
+            UPDATE candidature
+            SET statut_candidature = 'acceptée' 
+            WHERE id_candidature =$1
+            `
+            , [id])
+
+            res.json({message : "Candidature acceptée"});
+
+    }catch(error){
+        console.error("Erreur lors de l'acceptation de la candidature :", error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.patch('/api/candidatures/:id/refuser', async (req,res) => {
+    const {id} =req.params;
+
+    try{
+        await pool.query(`
+            
+            UPDATE candidature 
+            SET statut_candidature = 'refuséé'
+            WHERE id_candidature= $1
+            `
+        ,[id]);
+        res.json({message: "candidature refusée"});
+
+    }catch(error){
+        console.error("Erreur lors du refus de la candidature :", error.message);
+        res.status(500).json({message : "Erreur technique lors du refus de la candidature"});
+
+    }
+});
+
+
+
+
+app.patch('/api/candidatures/:id/renoncer', async (req, res)=>{
+    const {id} =req.params;
+    const {justificatif_renoncement} =req.body;
+
+    try{
+        await pool.query (`
+            UPDATE candidature
+            SET statut_candidature = 'renoncée',
+            justificatif_renoncement = $1
+            WHERE id_candidature = $2
+            `
+        , [justificatif_renoncement, id]);
+
+        res.json({message : "Candidature renoncée"});
+
+
+    }catch(error){
+        console.error("Erreur lors du renoncement de la candiature :", error.message);
+        res.status(500).json({message : "Erreur technique lors du renoncement"});
+
+    }
+
+});
 
 
 

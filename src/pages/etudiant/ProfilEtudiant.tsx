@@ -9,61 +9,62 @@ import {
   UploadCloud,
   FileText,
 } from "lucide-react";
-import { set } from "date-fns";
+
+// 1. Définition de l'interface pour l'objet RC
+interface AttestationData {
+  attestation_fichier: string;
+  validation_attestation: string;
+}
 
 export default function ProfilEtudiant() {
   const [file, setFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [RC, setRC] = useState<string | null>(null);
+  const [RC, setRC] = useState<AttestationData | null>(null);
   const [chargerAttestation, setChargerAttestation] = useState(true);
 
   const userId = localStorage.getItem("userId");
   const userName = localStorage.getItem("userName");
 
+  const telechargerRC = () => {
+    if (!RC || !RC.attestation_fichier) return;
 
-const telechargerRC = () => {
-  if (!RC) return;
+    const link = document.createElement("a");
+    const fileType = RC.attestation_fichier.split(";")[0].split(":")[1];
+    const extension = fileType.split("/")[1];
 
-  const link = document.createElement("a");
-  const fileType = RC.split(";")[0].split(":")[1]; 
-  const extension = fileType.split("/")[1]; 
+    link.href = RC.attestation_fichier;
+    link.download = `attestation.${extension}`;
+    link.click();
+  };
 
-  link.href = RC;
-  link.download = `attestation.${extension}`; 
-  link.click();
-};
+  const supprimerRC = async () => {
+    setRC(null);
+    setChargerAttestation(true);
 
-const supprimerRC = async () => {
-  setRC(null);
-  setChargerAttestation(true);
-
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/etudiants/${userId}/attestation`,
-      { method: "DELETE" }
-    );
-    if (!res.ok) console.log("Erreur suppression sur le serveur");
-  } catch (err) {
-    console.log("Erreur réseau lors de la suppression :", err);
-  } finally {
-    setChargerAttestation(false);
-  }
-};
-
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/etudiants/${userId}/attestation`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) console.log("Erreur suppression sur le serveur");
+    } catch (err) {
+      console.log("Erreur réseau lors de la suppression :", err);
+    } finally {
+      setChargerAttestation(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAttestation = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/etudiants/${userId}/profil-complet`
+          `http://localhost:5000/api/etudiants/${userId}/attestation` 
         );
         if (res.ok) {
           const data = await res.json();
-          if (data.attestation_responsabilite) {
-            setRC(data.attestation_responsabilite);
-          }
+            setRC(data);
         }
       } catch (error) {
         console.log("Erreur lors du fetch de l'attestation :", error);
@@ -72,7 +73,7 @@ const supprimerRC = async () => {
       }
     };
     fetchAttestation();
-  }, []);
+  }, [userId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -111,8 +112,12 @@ const supprimerRC = async () => {
       );
 
       if (res.ok) {
-        setMessage("Attestation importée et statut mis à jour !");
-        setRC(base64File);
+        setMessage("Attestation importée avec succès !");
+        // ici on met à jour l'objet  pour refléter le changement immédiat car il faut respecter la forme 64 byte
+        setRC({
+          attestation_fichier: base64File,
+          validation_attestation: 'en attente'
+        });
         setFile(null);
       } else {
         setMessage("Erreur lors de l'envoi au serveur.");
@@ -130,7 +135,7 @@ const supprimerRC = async () => {
       <div className="border-b border-white/5 pb-6 text-white">
         <h2 className="text-3xl font-bold tracking-tight">Mon Profil</h2>
         <p className="text-white/40 font-medium">
-          Gérez vos documents officiels de scolarité.
+          Gerez vos documents officiels de scolarité.
         </p>
       </div>
 
@@ -151,37 +156,50 @@ const supprimerRC = async () => {
           </CardContent>
         </Card>
 
-        <div className={` bg-neutral-800 border-white/50 p-5 rounded-2xl shadow-md text-white mt-4 relative bottom-4
-    transition-all duration-300  ${RC ? "w-[350px]" : "w-full"}
-            
-            `}>
-  <h3 className="text-lg font-bold mb-4">
-    Mon attestation de responsabilité civile
-  </h3>
+        <div
+          className={` bg-neutral-800 border-white/50 p-5 rounded-2xl shadow-md text-white mt-4 relative bottom-4
+            transition-all duration-300 ${RC ? "w-[450px]" : "w-full"}`}
+        >
+          <h3 className="text-lg font-bold mb-4">
+            Mon attestation de responsabilité civile
+          </h3>
 
-  {chargerAttestation ? (
-    <p>Chargement...</p>
-  ) : RC ? (
-    <div className="flex justify-between items-center gap-4">
-      <span className="text-lime">Attestation RC</span>
+          {chargerAttestation ? (
+            <p>Chargement...</p>
+          ) : RC ? (
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-lime">Attestation RC</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${
+                  RC.validation_attestation === 'validée' 
+                    ? 'border-green-500 text-green-500 bg-green-500/10' 
+                    : RC.validation_attestation === 'refusée' 
+                    ? 'border-red-500 text-red-500 bg-red-500/10'     
+                    : 'border-yellow-500 text-yellow-500 bg-yellow-500/10' 
+                }`}>
+                  {RC.validation_attestation || 'en attente'}
+                </span>
+              </div>
 
-      <div className="flex gap-2">
-        <Button className="bg-green-400" onClick={telechargerRC}>
-          Télécharger
-        </Button>
+              <div className="flex gap-2">
+                <Button className="bg-green-500 hover:bg-green-700 h-8 text-xs" onClick={telechargerRC}>
+                  Télécharger
+                </Button>
 
-        <Button className="bg-red-500 hover:bg-red-600" onClick={supprimerRC}>
-          Supprimer
-        </Button>
-      </div>
-    </div>
-  ) : (
-    <p className="text-white/50 italic">
-      Aucune attestation disponible
-    </p>
-  )}
-</div>
-
+                <Button
+                  className="bg-red-500 hover:bg-red-700 h-8 text-xs"
+                  onClick={supprimerRC}
+                >
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-white/50 italic">
+              Aucune attestation disponible
+            </p>
+          )}
+        </div>
 
         <Card className="md:col-span-2 bg-neutral-800 border-white/10 shadow-2xl overflow-hidden">
           <div className="bg-blue-600/10 p-5 border-b border-white/5 flex items-center gap-3">
@@ -201,11 +219,7 @@ const supprimerRC = async () => {
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={`group border-2 border-dashed rounded-[32px] p-12 flex flex-col items-center justify-center transition-all cursor-pointer
-                                    ${
-                                      file
-                                        ? "border-blue-500 bg-blue-500/5"
-                                        : "border-white/10 hover:border-blue-500/50 hover:bg-white/[0.02]"
-                                    }`}
+                  ${file ? "border-blue-500 bg-blue-500/5" : "border-white/10 hover:border-blue-500/50 hover:bg-white/[0.02]"}`}
               >
                 <input
                   type="file"
@@ -219,9 +233,7 @@ const supprimerRC = async () => {
                   <div className="flex flex-col items-center gap-3">
                     <FileText className="text-blue-400" size={56} />
                     <div className="text-center">
-                      <p className="text-white font-bold text-lg">
-                        {file.name}
-                      </p>
+                      <p className="text-white font-bold text-lg">{file.name}</p>
                       <p className="text-xs text-white/40 uppercase font-bold tracking-widest mt-1">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
@@ -248,11 +260,7 @@ const supprimerRC = async () => {
                 disabled={!file || isSaving}
                 className="w-full h-16 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl transition-all shadow-xl shadow-blue-600/20 text-lg"
               >
-                {isSaving ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  "Enregistrer le document"
-                )}
+                {isSaving ? <Loader2 className="animate-spin" /> : "Enregistrer le document"}
               </Button>
             </form>
 
@@ -265,9 +273,7 @@ const supprimerRC = async () => {
                 }`}
               >
                 <CheckCircle size={18} />
-                <span className="text-sm font-bold tracking-tight">
-                  {message}
-                </span>
+                <span className="text-sm font-bold tracking-tight">{message}</span>
               </div>
             )}
           </CardContent>

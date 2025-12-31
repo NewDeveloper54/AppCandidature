@@ -5,6 +5,7 @@ import { PlusCircle, ListOrdered, Building2 } from 'lucide-react';
 import DeposerOffre from './DeposerOffre';
 import MesOffres from './MesOffres';
 import ConsulterEtudiants from './ConsulterEtudiants';
+import ValiderCandidatures from './ValiderCandidatures'
 
 export default function EntrepriseDashboard() {
     return (
@@ -31,6 +32,11 @@ export default function EntrepriseDashboard() {
                             <ListOrdered size={18} /> Consulter les étudiants 
                         </Button>
                     </Link>
+                    <Link to="/entreprise/valider_candidatures">
+                        <Button variant="ghost" className="w-full justify-start text-white/80 hover:bg-neutral-700 gap-2">
+                            <ListOrdered size={18} /> Valider les candidatures 
+                        </Button>
+                    </Link>
                 </nav>
             </aside>
 
@@ -41,6 +47,7 @@ export default function EntrepriseDashboard() {
                     <Route path="deposer" element={<DeposerOffre />} />
                     <Route path="mes-offres" element={<MesOffres />} />
                     <Route path="consulter_etudiants" element={<ConsulterEtudiants />} />
+                    <Route path="valider_candidatures" element={<ValiderCandidatures />} / >
                     
                 </Routes>
                 <Outlet />

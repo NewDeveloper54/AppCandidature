@@ -6,7 +6,7 @@ import { Search, GraduationCap, ClipboardList, UserCircle } from 'lucide-react';
 import ConsulterOffres from './ConsulterOffres';
 import MesCandidatures from './MesCandidatures';
 import ProfilEtudiant from './ProfilEtudiant';
-import OffresSignalees from './offresSignalees';
+import OffresSignalees from './OffresSignalees';
 export default function EtudiantDashboard() {
     return (
         <div className="flex h-screen overflow-hidden bg-neutral-900 pt-20">

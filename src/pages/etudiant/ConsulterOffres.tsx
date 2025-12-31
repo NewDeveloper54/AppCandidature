@@ -168,8 +168,8 @@ export default function ConsulterOffres() {
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleApply} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                <div className="space-y-2 text-white">
+                  <label className="text-[10px]  font-bold text-white/40 uppercase tracking-widest">
                     Lien de votre CV (PDF)
                   </label>
                   <Input
